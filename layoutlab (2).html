@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LayoutLab — Visual CSS Builder</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e34b4b'/><text x='50%' y='54%' dominant-baseline='central' text-anchor='middle' fill='%23ffffff' font-family='system-ui, sans-serif' font-weight='900' font-size='22'>L</text></svg>">
+<style>
+:root {
+  --bg: #101114;
+  --panel: #181a20;
+  --panel-2: #20232b;
+  --border: #30343e;
+  --text: #f2f3f5;
+  --muted: #9298a5;
+  --accent: #e34b4b;
+  --accent-hover: #f05b5b;
+  --grid: rgba(255,255,255,.075);
+  --canvas: #f5f6f8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input, select, textarea { font: inherit; }
+button {
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--panel-2);
+  border-radius: 7px;
+  padding: 8px 11px;
+  cursor: pointer;
+  transition: .16s ease;
+}
+button:hover { border-color: #656b78; background: #292d37; }
+button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+button.primary:hover { background: var(--accent-hover); }
+button.active { border-color: var(--accent); color: #ffb3b3; background: #352126; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.topbar {
+  height: 62px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; border-bottom: 1px solid var(--border); background: #15171c;
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 750; letter-spacing: -.5px; }
+.brand-mark {
+  width: 29px; height: 29px; border-radius: 8px; display: grid; place-items: center;
+  background: var(--accent); color: white; font-weight: 900;
+}
+.brand small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: .8px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.status { color: var(--muted); font-size: 12px; margin-right: 8px; white-space: nowrap; }
+.project-name {
+  background: transparent; border: 1px solid transparent; color: var(--text); border-radius: 7px;
+  padding: 6px 9px; width: 210px; font-weight: 650; text-align: center;
+}
+.project-name:hover { border-color: var(--border); }
+.project-name:focus { border-color: var(--accent); background: var(--panel-2); outline: none; }
+.top-center { display: flex; align-items: center; gap: 8px; }
+.recover-bar {
+  position: fixed; top: 72px; left: 50%; transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px;
+  background: #20232b; border: 1px solid var(--accent); box-shadow: 0 10px 34px #000a; max-width: 92vw;
+}
+.recover-bar[hidden] { display: none; }
+.recover-bar span { font-size: 13px; }
+.app {
+  height: calc(100vh - 62px); min-height: 600px;
+  display: grid; grid-template-columns: 220px minmax(320px, 1fr) 290px;
+}
+.sidebar, .inspector { background: var(--panel); min-width: 0; overflow: auto; }
+.sidebar { border-right: 1px solid var(--border); padding: 17px 13px; }
+.inspector { border-left: 1px solid var(--border); padding: 17px 15px; }
+.section-label {
+  color: var(--muted); text-transform: uppercase; letter-spacing: 1.1px;
+  font-size: 10px; font-weight: 750; margin: 5px 0 10px;
+}
+.tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tool {
+  min-height: 74px; display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: center; gap: 8px; text-align: left; padding: 10px;
+}
+.tool .tool-icon { font-size: 20px; color: #ff8a8a; }
+.tool span:last-child { font-size: 12px; }
+.help { color: var(--muted); font-size: 11px; line-height: 1.55; margin-top: 15px; }
+.divider { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
+.layers { display: flex; flex-direction: column; gap: 5px; }
+.layer {
+  padding: 8px 9px; display: flex; align-items: center; gap: 8px; border-radius: 6px;
+  color: #c8cbd2; cursor: pointer; font-size: 12px; border: 1px solid transparent;
+}
+.layer:hover { background: var(--panel-2); }
+.layer.selected { background: #352126; border-color: #79383d; color: #fff; }
+.page-list { display:flex; flex-direction:column; gap:5px; margin-bottom:9px; }
+.page-item { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid transparent; border-radius:6px; cursor:pointer; color:#c8cbd2; font-size:12px; }
+.page-item.active { background:#352126; border-color:#79383d; color:white; }
+.page-item .page-number { width:22px; height:18px; display:grid; place-items:center; border-radius:4px; background:#30343e; font-size:10px; }
+.page-actions button { font-size:11px; padding:7px 5px; }
+.layer-icon { width: 19px; color: #ff9292; text-align: center; }
+.workspace {
+  min-width: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: #121419;
+}
+.workspace-toolbar {
+  height: 54px; flex: 0 0 54px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 14px; gap: 10px;
+}
+.toolbar-group { display: flex; align-items: center; gap: 6px; }
+.toolbar-group button { padding: 6px 9px; font-size: 12px; }
+.zoom-label { color: var(--muted); font-size: 11px; min-width: 42px; text-align: center; }
+.canvas-scroll {
+  flex: 1; overflow: auto; padding: 38px; display: flex; align-items: flex-start;
+  justify-content: center; background-color: #13151a;
+  background-image: radial-gradient(#30343c .8px, transparent .8px); background-size: 18px 18px;
+}
+.canvas-wrap { flex: 0 0 auto; position: relative; box-shadow: 0 12px 40px #0008; }
+.canvas {
+  position: relative; width: 900px; height: 600px; background: var(--canvas);
+  overflow: hidden; transform-origin: top left;
+  background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.canvas::before {
+  content: "LAYOUT CANVAS"; position: absolute; top: 12px; left: 14px;
+  font-size: 9px; letter-spacing: 1px; color: #a4a8b0; pointer-events: none;
+}
+.canvas.grid-off { background-image: none; }
+.element {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  min-width: 24px; min-height: 24px; cursor: move; user-select: none;
+  border: 1px solid transparent; overflow: visible;
+}
+.element.selected { outline: 2px solid #e34b4b; outline-offset: 1px; z-index: 5; }
+.element-text {
+  width: 100%; height: 100%; padding: 5px; display: flex; align-items: center;
+  justify-content: center; text-align: center; overflow: hidden; white-space: pre-wrap;
+  overflow-wrap: anywhere; pointer-events: none;
+}
+.element-box { width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
+.element-text.as-details { display: block; text-align: left; overflow: auto; padding: 8px; }
+.element-text details { width: 100%; }
+.element-text summary { cursor: pointer; font-weight: 700; }
+.check-field { display: flex; align-items: center; gap: 8px; color: #c8cbd2; font-size: 12px; margin: 0 0 12px; }
+.check-field input { width: auto; }
+.handle {
+  width: 9px; height: 9px; position: absolute; background: white;
+  border: 1px solid var(--accent); border-radius: 2px; z-index: 7;
+}
+.handle.nw { top: -5px; left: -5px; cursor: nwse-resize; }
+.handle.ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.handle.sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.handle.se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+.inspector h2 { font-size: 14px; margin: 0 0 15px; }
+.empty-state { color: var(--muted); font-size: 12px; line-height: 1.6; padding: 12px; background: var(--panel-2); border-radius: 7px; }
+.field { margin-bottom: 13px; }
+.field label { display: flex; justify-content: space-between; color: #c8cbd2; font-size: 11px; margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%; color: var(--text); background: #111318; border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px;
+}
+.field input[type="color"] { height: 36px; padding: 3px; }
+.field input[type="range"] { padding: 0; accent-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 62px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.code-panel {
+  border-top: 1px solid var(--border); background: #17191f; height: 205px;
+  display: flex; flex-direction: column; flex: 0 0 205px;
+}
+.code-head {
+  height: 43px; flex: 0 0 43px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 13px; border-bottom: 1px solid var(--border);
+}
+.code-head strong { font-size: 12px; }
+.code-tabs { display: flex; gap: 5px; }
+.code-tabs button { font-size: 11px; padding: 5px 9px; }
+.code-output {
+  flex: 1; overflow: auto; margin: 0; padding: 12px 15px; color: #d5d9e2;
+  font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre; tab-size: 2;
+}
+.toast {
+  position: fixed; bottom: 18px; left: 50%; transform: translate(-50%, 15px);
+  background: #252a33; border: 1px solid #454b58; color: white; padding: 9px 14px;
+  border-radius: 8px; opacity: 0; pointer-events: none; transition: .2s; z-index: 30;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 950px) {
+  .app { grid-template-columns: 175px minmax(280px, 1fr); }
+  .inspector { display: none; }
+}
+@media (max-width: 650px) {
+  .topbar { padding: 0 12px; }
+  .status { display: none; }
+  .app { height: auto; min-height: calc(100vh - 62px); display: flex; flex-direction: column; }
+  .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+  .tool-grid { grid-template-columns: repeat(3, 1fr); }
+  .tool { min-height: 58px; padding: 7px; }
+  .tool .tool-icon { font-size: 16px; }
+  .canvas-scroll { min-height: 440px; padding: 22px; justify-content: flex-start; }
+  .workspace { min-height: 640px; }
+  .code-panel { height: 190px; flex-basis: 190px; }
+}
+@media (pointer: coarse) {
+  button, .layer { min-height: 42px; }
+  .handle { width: 14px; height: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">L</div><div>LayoutLab<small>VISUAL CSS BUILDER</small></div></div>
+  <div class="top-center">
+    <input class="project-name" id="projectName" type="text" value="Untitled project" maxlength="80" aria-label="Project name" spellcheck="false">
+  </div>
+  <div class="top-actions">
+    <span class="status" id="saveStatus">Unsaved workspace</span>
+    <button id="openBtn" title="Open a saved project (Ctrl+O)">Open</button>
+    <button id="saveBtn" title="Download project as .json (Ctrl+S)">Save</button>
+    <button id="saveAsBtn" title="Save under a new name (Ctrl+Shift+S)">Save As</button>
+    <input id="projectFile" type="file" accept=".json,application/json" hidden>
+    <button id="clearBtn">Clear</button>
+    <button class="primary" id="copyBtn">Copy CSS</button>
+  </div>
+</header>
+
+<main class="app">
+  <aside class="sidebar">
+    <div class="section-label">Add elements</div>
+    <div class="tool-grid">
+      <button class="tool" id="addText"><span class="tool-icon">T</span><span>Text</span></button>
+      <button class="tool" id="addBox"><span class="tool-icon">▧</span><span>Box</span></button>
+      <button class="tool" id="addImage"><span class="tool-icon">▣</span><span>Image</span></button>
+      <button class="tool" id="addButton"><span class="tool-icon">▰</span><span>Button</span></button>
+      <button class="tool" id="addTable"><span class="tool-icon">▦</span><span>Table</span></button>
+      <button class="tool" id="addDivider"><span class="tool-icon">━</span><span>Divider</span></button>
+      <input id="imageUpload" type="file" accept="image/*" hidden>
+    </div>
+    <div class="section-label" style="margin-top:16px">Forms &amp; embeds</div>
+    <div class="tool-grid">
+      <button class="tool" id="addInput"><span class="tool-icon">▭</span><span>Input</span></button>
+      <button class="tool" id="addTextarea"><span class="tool-icon">☰</span><span>Textarea</span></button>
+      <button class="tool" id="addSelect"><span class="tool-icon">▾</span><span>Select</span></button>
+      <button class="tool" id="addCheckbox"><span class="tool-icon">☑</span><span>Checkbox</span></button>
+      <button class="tool" id="addRadio"><span class="tool-icon">◉</span><span>Radio group</span></button>
+      <button class="tool" id="addEmbed"><span class="tool-icon">⧉</span><span>Iframe / Embed</span></button>
+    </div>
+    <p class="help">Add elements to the canvas, then drag them into position. Select an element to resize it or edit its properties.</p>
+    <hr class="divider">
+    <div class="section-label">Pages</div>
+    <div id="pageList" class="page-list"></div>
+    <div class="two-col page-actions"><button id="addPageBtn" class="primary">+ Page</button><button id="renamePageBtn">Rename</button></div><div class="two-col page-actions"><button id="duplicatePageBtn">Duplicate</button><button id="deletePageBtn">Delete page</button></div>
+    <p class="help">Each page has its own elements. Switch pages to edit them, just like slides.</p>
+    <hr class="divider">
+    <div class="section-label">Layers</div>
+    <div class="layers" id="layers">
+      <div class="empty-state">Your elements will appear here.</div>
+    </div>
+    <hr class="divider">
+    <div class="section-label">Canvas</div>
+    <div class="field">
+      <label for="canvasWidth">Width <span>px</span></label>
+      <input id="canvasWidth" type="number" min="240" max="2000" value="900">
+    </div>
+    <div class="field">
+      <label for="canvasHeight">Height <span>px</span></label>
+      <input id="canvasHeight" type="number" min="200" max="1600" value="600">
+    </div>
+    <button id="gridToggle" class="active" style="width:100%">Grid visible</button>
+  </aside>
+
+  <section class="workspace">
+    <div class="workspace-toolbar">
+      <div class="toolbar-group">
+        <button id="selectMode" class="active" title="Select and move elements">↖ Select</button>
+        <button id="deleteBtn" title="Delete selected element">⌫ Delete</button>
+      </div>
+      <div class="toolbar-group">
+        <button id="zoomOut" title="Zoom out">−</button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+        <button id="zoomIn" title="Zoom in">+</button>
+        <button id="fitBtn">Fit</button>
+      </div>
+    </div>
+    <div class="canvas-scroll" id="canvasScroll">
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="canvas" id="canvas"></div>
+      </div>
+    </div>
+    <section class="code-panel">
+      <div class="code-head">
+        <strong>Generated code</strong>
+        <div class="code-tabs">
+          <button id="htmlTab" class="active">HTML</button>
+          <button id="cssTab">CSS</button>
+        </div>
+        <button id="copyCodeBtn">Copy</button>
+      </div>
+      <pre class="code-output" id="codeOutput"></pre>
+    </section>
+  </section>
+
+  <aside class="inspector">
+    <h2>Properties</h2>
+    <div id="propertyPanel" class="empty-state">Select an element on the canvas to customize its position, size, text, and appearance.</div>
+  </aside>
+</main>
+<div class="toast" id="toast">Copied!</div>
+<div class="recover-bar" id="recoverBar" hidden role="alert">
+  <span id="recoverText">Unsaved work was found from your last session.</span>
+  <button class="primary" id="recoverRestore">Restore</button>
+  <button id="recoverDiscard">Discard</button>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvas = $('canvas'), canvasWrap = $('canvasWrap'), propertyPanel = $('propertyPanel');
+  const layers = $('layers'), codeOutput = $('codeOutput'), toast = $('toast');
+  let items = [], selectedId = null, nextId = 1, zoom = 1, codeTab = 'html';
+  let gridVisible = true, action = null, elementClipboard = null;
+  const undoStack = [], redoStack = [];
+  let pages = [{id:1,name:'Page 1',items:[]}], activePageIndex = 0;
+  const formBase = {x:100,y:120,w:260,h:44,color:'#252a32',bg:'#ffffff',fontSize:15,weight:'400',radius:8,borderWidth:1,borderStyle:'solid',borderColor:'#c8cbd2',text:'',label:'',fieldName:'',placeholder:'',required:false};
+  const defaults = {
+    text: {x:100,y:100,w:230,h:65,text:'Your text here',color:'#252a32',bg:'transparent',fontSize:24,weight:'600',radius:0,borderWidth:0,borderStyle:'solid',borderColor:'#252a32'},
+    box: {x:120,y:120,w:190,h:125,text:'',color:'#ffffff',bg:'#e34b4b',fontSize:16,weight:'400',radius:10,borderWidth:0,borderStyle:'solid',borderColor:'#252a32'},
+    image: {x:120,y:120,w:240,h:160,text:'',color:'#ffffff',bg:'transparent',fontSize:16,weight:'400',radius:0,borderWidth:0,borderStyle:'solid',borderColor:'#252a32',src:'',objectFit:'cover'},
+    button: {x:120,y:120,w:170,h:52,text:'Click me',color:'#ffffff',bg:'#3867e8',fontSize:16,weight:'600',radius:9,borderWidth:0,borderStyle:'solid',borderColor:'#252a32'},
+    table: {x:100,y:120,w:360,h:180,text:'Header 1 | Header 2\nCell 1 | Cell 2\nCell 3 | Cell 4',color:'#252a32',bg:'#ffffff',fontSize:14,weight:'400',radius:4,borderWidth:1,borderStyle:'solid',borderColor:'#c8cbd2'},
+    divider: {x:100,y:150,w:300,h:4,text:'',color:'#777777',bg:'#777777',fontSize:16,weight:'400',radius:0,borderWidth:0,borderStyle:'solid',borderColor:'#777777'},
+    input: {...formBase,label:'Email address',placeholder:'you@example.com',inputType:'email',fieldName:'email'},
+    textarea: {...formBase,h:110,label:'Message',placeholder:'Your message',fieldName:'message'},
+    select: {...formBase,label:'Choose an option',fieldName:'option',text:'Option one\nOption two\nOption three'},
+    checkbox: {...formBase,w:210,h:32,bg:'transparent',borderWidth:0,text:'I agree to the terms',fieldName:'agree',checked:false},
+    radio: {...formBase,w:210,h:110,bg:'transparent',borderWidth:0,label:'Choose one',fieldName:'choice',text:'Option A\nOption B\nOption C'},
+    embed: {...formBase,w:420,h:260,label:'',src:'',embedKind:'iframe',title:'Embedded content',allowFullscreen:true}
+  };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const selected = () => items.find(item=>item.id===selectedId);
+  const number = (v,fallback) => Number.isFinite(Number(v)) ? Number(v) : fallback;
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const BG_TYPES=['box','button','table','divider','input','textarea','select','checkbox','radio','embed'];
+  const FORM=['input','textarea','select','checkbox','radio'];
+  const NOTEXT=['image','divider','embed'];
+  const INPUT_TYPES=['text','email','password','number','tel','url','search','date'];
+  const safeUrl=u=>{const s=String(u||'').trim();return /^https?:\/\//i.test(s)?s:'';};
+  const lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  const inType=i=>INPUT_TYPES.includes(i.inputType)?i.inputType:'text';
+  const btnType=i=>['submit','reset'].includes(i.buttonType)?i.buttonType:'button';
+  function buildText(item){
+    const c=document.createElement('div'); c.className='element-text';
+    c.style.background=item.bg==='transparent'?'transparent':item.bg;
+    if(item.detailsEnabled){
+      c.classList.add('as-details');
+      const d=document.createElement('details'); d.open=!!item.detailsOpen;
+      const s=document.createElement('summary'); s.textContent=item.summaryText||'Summary';
+      d.appendChild(s); d.appendChild(document.createTextNode(item.text)); c.appendChild(d);
+    } else c.textContent=item.text;
+    return c;
+  }
+  function buildControl(item){
+    const t=item.type, wrap=document.createElement('div');
+    wrap.style.cssText='width:100%;height:100%;display:flex;align-items:center;pointer-events:none;overflow:hidden;border-radius:inherit;font:inherit;color:inherit';
+    const bare='width:100%;height:100%;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:0 10px;margin:0;';
+    let ctl;
+    if(t==='input'){ctl=document.createElement('input');ctl.type=inType(item);ctl.placeholder=item.placeholder||'';ctl.style.cssText=bare;}
+    else if(t==='textarea'){ctl=document.createElement('textarea');ctl.placeholder=item.placeholder||'';ctl.style.cssText=bare+'padding:8px 10px;resize:none;';wrap.style.alignItems='stretch';}
+    else if(t==='select'){ctl=document.createElement('select');lines(item.text).forEach(o=>{const op=document.createElement('option');op.textContent=o;ctl.appendChild(op);});ctl.style.cssText=bare;}
+    else if(t==='checkbox'){ctl=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!item.checked;const sp=document.createElement('span');sp.textContent=item.text;ctl.append(cb,sp);ctl.style.cssText='display:flex;align-items:center;gap:8px;padding:0 4px';}
+    else {
+      Object.assign(wrap.style,{flexDirection:'column',alignItems:'flex-start',justifyContent:'center',gap:'6px',padding:'0 4px'});
+      lines(item.text).forEach(o=>{const l=document.createElement('label');l.style.cssText='display:flex;align-items:center;gap:8px';const r=document.createElement('input');r.type='radio';r.name='preview-'+item.id;const s=document.createElement('span');s.textContent=o;l.append(r,s);wrap.appendChild(l);});
+      return wrap;
+    }
+    ctl.tabIndex=-1; wrap.appendChild(ctl); return wrap;
+  }
+  function buildEmbed(item){
+    const url=safeUrl(item.src);
+    if(!url){const p=document.createElement('div');p.textContent='Add an https:// URL in Properties';p.style.cssText='font-size:12px;color:#777;text-align:center;padding:8px;pointer-events:none';return p;}
+    const f=document.createElement(item.embedKind==='embed'?'embed':'iframe'); f.src=url;
+    if(f.tagName==='IFRAME'){f.title=item.title||item.name||'Embedded content';f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-presentation');f.loading='lazy';}
+    f.style.cssText='width:100%;height:100%;border:0;display:block;border-radius:inherit;pointer-events:none;background:#fff';
+    return f;
+  }
+  function typeFields(item){
+    const t=item.type;
+    const yn=(k,l)=>`<label class="check-field"><input id="prop-${k}" type="checkbox" ${item[k]?'checked':''}> ${l}</label>`;
+    const opts=arr=>arr.map(([value,label])=>({value,label}));
+    let h='';
+    if(t==='text') h+='<div class="section-label">Collapsible text</div>'+yn('detailsEnabled','Show as details / summary')+(item.detailsEnabled?field('Summary text (always visible)','summaryText',item.summaryText||'Summary','text')+yn('detailsOpen','Open by default'):'');
+    if(t==='button') h+=field('Button type','buttonType',btnType(item),'select',{options:opts([['button','Button'],['submit','Submit'],['reset','Reset']])});
+    if(['input','textarea','select','radio'].includes(t)) h+=field('Label (accessible name)','label',item.label||'','text');
+    if(t==='input') h+=field('Input type','inputType',inType(item),'select',{options:opts(INPUT_TYPES.map(v=>[v,v[0].toUpperCase()+v.slice(1)]))});
+    if(t==='input'||t==='textarea') h+=field('Placeholder','placeholder',item.placeholder||'','text');
+    if(t==='select'||t==='radio') h+=field('Options (one per line)','text',item.text,'textarea');
+    if(t==='checkbox') h+=field('Label text','text',item.text,'textarea')+yn('checked','Checked by default');
+    if(FORM.includes(t)) h+=field('Field name','fieldName',item.fieldName||'','text')+(t==='radio'?'':yn('required','Required'));
+    if(t==='embed') h+=field('URL (https://…)','src',item.src||'','url')+field('Element','embedKind',item.embedKind==='embed'?'embed':'iframe','select',{options:opts([['iframe','&lt;iframe&gt;'],['embed','&lt;embed&gt;']])})+field('Title (accessible name)','title',item.title||'','text')+(item.embedKind==='embed'?'':yn('allowFullscreen','Allow fullscreen'))+'<p class="help" style="margin:0 0 13px">Some sites refuse to be framed. The canvas preview is non-interactive; the exported HTML is live.</p>';
+    return h;
+  }
+  function extraCss(item){
+    const t=item.type, f=`font-size:${item.fontSize}px; font-weight:${item.weight}; font-family:inherit; `;
+    if(t==='text'&&item.detailsEnabled) return f+'display:block; overflow:auto; padding:8px; text-align:left; white-space:pre-wrap; overflow-wrap:anywhere;\n  ';
+    if(t==='input'||t==='select') return f+'display:block; padding:0 10px;\n  ';
+    if(t==='textarea') return f+'display:block; padding:8px 10px; resize:none;\n  ';
+    if(t==='checkbox') return f+'display:flex; align-items:center; gap:8px; padding:0 4px;\n  ';
+    if(t==='radio') return f+'display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:6px; padding:0 4px;\n  ';
+    if(t==='embed') return 'display:block;\n  ';
+    return '';
+  }
+  function extraRule(item){
+    const c='.'+cssClass(item);
+    if(item.type==='text'&&item.detailsEnabled) return `\n${c} summary { cursor:pointer; font-weight:700; }`;
+    if(item.type==='radio') return `\n${c} label { display:flex; align-items:center; gap:8px; }`;
+    return '';
+  }
+  function saveHistory() {
+    pages[activePageIndex].items = items;
+    undoStack.push({pages:clone(pages),activePageIndex,selectedId,nextId});
+    if (undoStack.length>100) undoStack.shift();
+    redoStack.length=0;
+  }
+  function restore(state) {
+    pages=clone(state.pages || [{id:1,name:'Page 1',items:state.items||[]}]);
+    activePageIndex=state.activePageIndex||0; items=pages[activePageIndex].items;
+    selectedId=state.selectedId; nextId=state.nextId; render();
+  }
+  function renderPages() {
+    const host=$('pageList'); host.innerHTML='';
+    pages.forEach((page,index)=>{
+      const row=document.createElement('div'); row.className='page-item'+(index===activePageIndex?' active':'');
+      row.innerHTML=`<span class="page-number">${index+1}</span><span>${esc(page.name)}</span>`;
+      row.addEventListener('click',()=>switchPage(index)); host.appendChild(row);
+    });
+  }
+  function switchPage(index) {
+    if(index===activePageIndex || !pages[index]) return;
+    saveHistory(); pages[activePageIndex].items=items; activePageIndex=index;
+    items=pages[index].items; selectedId=null; render();
+  }
+  function addPage() {
+    saveHistory(); pages[activePageIndex].items=items;
+    pages.push({id:Date.now()+Math.floor(Math.random()*1000),name:'Page '+(pages.length+1),items:[]});
+    activePageIndex=pages.length-1; items=pages[activePageIndex].items; selectedId=null; render(); showToast('New page added');
+  }
+  function duplicatePage() {
+    saveHistory(); pages[activePageIndex].items=items;
+    const source=pages[activePageIndex]; const copied=clone(source); copied.id=Date.now()+Math.floor(Math.random()*1000); copied.name=source.name+' copy';
+    copied.items=copied.items.map(item=>({...item,id:nextId++})); pages.splice(activePageIndex+1,0,copied); activePageIndex++; items=copied.items; selectedId=null; render(); showToast('Page duplicated');
+  }
+  function deletePage() {
+    if(pages.length===1){showToast('Keep at least one page');return;}
+    if(!confirm(`Delete ${pages[activePageIndex].name}?`))return; saveHistory(); pages.splice(activePageIndex,1); activePageIndex=Math.max(0,activePageIndex-1); items=pages[activePageIndex].items; selectedId=null; render(); showToast('Page deleted');
+  }
+  function undo() {
+    if (!undoStack.length) return;
+    pages[activePageIndex].items=items;
+    redoStack.push({pages:clone(pages),activePageIndex,selectedId,nextId});
+    restore(undoStack.pop()); showToast('Undo');
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    pages[activePageIndex].items=items;
+    undoStack.push({pages:clone(pages),activePageIndex,selectedId,nextId});
+    restore(redoStack.pop()); showToast('Redo');
+  }
+  function add(type, src='') {
+    saveHistory();
+    const names={text:'Text',image:'Image',button:'Button',table:'Table',divider:'Divider',box:'Box',input:'Input',textarea:'Textarea',select:'Select',checkbox:'Checkbox',radio:'Radio group',embed:'Embed'};
+    const item={id:nextId++,type,name:names[type]||'Element',...clone(defaults[type])};
+    if (src) item.src=src;
+    item.x=Math.max(12,item.x+(items.length%5)*22);
+    item.y=Math.max(35,item.y+(items.length%5)*22);
+    items.push(item); selectedId=item.id; render();
+  }
+  function slug(name) {
+    return String(name||'element').trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'') || 'element';
+  }
+  function cssClass(item) { return `${slug(item.name)}-${item.id}`; }
+  function render() {
+    canvas.innerHTML='';
+    canvas.style.width=$('canvasWidth').value+'px'; canvas.style.height=$('canvasHeight').value+'px';
+    canvas.classList.toggle('grid-off',!gridVisible);
+    items.forEach(item=>{
+      const el=document.createElement('div');
+      el.className='element '+cssClass(item)+(item.id===selectedId?' selected':'');
+      el.dataset.id=item.id;
+      Object.assign(el.style,{left:item.x+'px',top:item.y+'px',width:item.w+'px',height:item.h+'px',
+        color:item.color,background:BG_TYPES.includes(item.type)?item.bg:'transparent',borderRadius:item.radius+'px',
+        border:`${item.borderWidth||0}px ${item.borderStyle||'solid'} ${item.borderColor||'#252a32'}`,
+        fontSize:item.fontSize+'px',fontWeight:item.weight,boxShadow:item.shadowEnabled?`${item.shadowX||0}px ${item.shadowY||4}px ${item.shadowBlur||12}px ${item.shadowSpread||0}px ${item.shadowColor||'rgba(0,0,0,.25)'}`:'none',
+        transition:'transform .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease'});
+      if(item.type==='text'){
+        el.appendChild(buildText(item));
+      } else if(item.type==='image'){
+        if(item.src){const img=document.createElement('img');img.src=item.src;img.alt=item.alt||item.name||'Layout image';
+          Object.assign(img.style,{width:'100%',height:'100%',objectFit:item.objectFit||'cover',display:'block',borderRadius:'inherit',pointerEvents:'none'});
+          el.appendChild(img);
+        } else {const placeholder=document.createElement('div');placeholder.textContent='Upload an image';placeholder.style.cssText='font-size:12px;color:#777';el.appendChild(placeholder);}
+      } else if(item.type==='button') {
+        const btn=document.createElement('button'); btn.type='button'; btn.textContent=item.text; btn.tabIndex=-1;
+        Object.assign(btn.style,{width:'100%',height:'100%',border:'0',borderRadius:'inherit',background:'transparent',color:'inherit',font:'inherit',fontWeight:'inherit',pointerEvents:'none'}); el.appendChild(btn);
+      } else if(item.type==='table') {
+        const table=document.createElement('table'); table.style.cssText='width:100%;height:100%;border-collapse:collapse;table-layout:fixed;background:transparent;color:inherit;font:inherit';
+        const rows=(item.text||'').split('\n').map(line=>line.split('|').map(cell=>cell.trim()));
+        rows.forEach((cells,r)=>{const tr=document.createElement('tr');cells.forEach(cell=>{const td=document.createElement(r===0?'th':'td');td.textContent=cell;td.style.cssText=`border:1px solid ${item.borderColor||'#c8cbd2'};padding:5px;text-align:left;overflow-wrap:anywhere;${r===0?'background:rgba(0,0,0,.07);font-weight:700;':''}`;tr.appendChild(td);});table.appendChild(tr);}); el.appendChild(table);
+      } else if(item.type==='divider') { el.style.background=item.bg; el.style.border='0'; }
+      else if(FORM.includes(item.type)) el.appendChild(buildControl(item));
+      else if(item.type==='embed') el.appendChild(buildEmbed(item));
+      else {const box=document.createElement('div');box.className='element-box';el.appendChild(box);}
+      if(item.hoverEnabled) {
+        el.addEventListener('mouseenter',()=>{el.style.background=item.hoverBg||el.style.background;el.style.color=item.hoverColor||item.color;el.style.transform=`scale(${item.hoverScale||1.04})`;if(item.hoverShadowEnabled!==false)el.style.boxShadow=item.hoverShadow||'0 8px 20px rgba(0,0,0,.25)';});
+        el.addEventListener('mouseleave',()=>{el.style.background=BG_TYPES.includes(item.type)?item.bg:'transparent';el.style.color=item.color;el.style.transform='scale(1)';el.style.boxShadow=item.shadowEnabled?`${item.shadowX||0}px ${item.shadowY||4}px ${item.shadowBlur||12}px ${item.shadowSpread||0}px ${item.shadowColor||'rgba(0,0,0,.25)'}`:'none';});
+      }
+      if(item.id===selectedId) ['nw','ne','sw','se'].forEach(pos=>{
+        const handle=document.createElement('div');handle.className='handle '+pos;handle.dataset.handle=pos;el.appendChild(handle);
+      });
+      el.addEventListener('pointerdown',startPointer); canvas.appendChild(el);
+    });
+    renderPages(); renderLayers(); renderProperties(); renderCode();
+    updateStatus(); scheduleAutosave();
+  }
+  function renderLayers() {
+    if(!items.length){layers.innerHTML='<div class="empty-state">Your elements will appear here.</div>';return;}
+    layers.innerHTML='';
+    [...items].reverse().forEach(item=>{
+      const row=document.createElement('div');row.className='layer'+(item.id===selectedId?' selected':'');
+      const icon=({text:'T',image:'▣',button:'▰',table:'▦',divider:'━',box:'▧',input:'▭',textarea:'☰',select:'▾',checkbox:'☑',radio:'◉',embed:'⧉'})[item.type]||'▧';
+      row.innerHTML=`<span class="layer-icon">${icon}</span><span>${esc(item.name)} ${item.id}</span>`;
+      row.addEventListener('click',()=>{selectedId=item.id;render();});layers.appendChild(row);
+    });
+  }
+  function field(label,key,value,type='number',extra={}) {
+    const id='prop-'+key; let input;
+    if(type==='textarea') input=`<textarea id="${id}">${esc(value)}</textarea>`;
+    else if(type==='select') input=`<select id="${id}">${extra.options.map(o=>`<option value="${o.value}" ${String(value)===String(o.value)?'selected':''}>${o.label}</option>`).join('')}</select>`;
+    else input=`<input id="${id}" type="${type}" value="${esc(value)}" ${extra.min!==undefined?`min="${extra.min}"`:''} ${extra.max!==undefined?`max="${extra.max}"`:''}>`;
+    return `<div class="field"><label for="${id}">${label}</label>${input}</div>`;
+  }
+  function renderProperties() {
+    const item=selected();
+    if(!item){propertyPanel.className='empty-state';propertyPanel.textContent='Select an element on the canvas to customize its position, size, text, and appearance.';return;}
+    propertyPanel.className='';
+    propertyPanel.innerHTML=field('Element name','name',item.name,'text')+
+      '<div class="section-label">Position & size</div><div class="two-col">'+
+      field('X position','x',item.x)+field('Y position','y',item.y)+field('Width','w',item.w)+field('Height','h',item.h)+'</div>'+
+      (item.type==='text'||item.type==='button'||item.type==='table'?field(item.type==='table'?'Table cells (use | between columns, new line between rows)':'Text content','text',item.text,'textarea'):'')+typeFields(item)+
+      (item.type==='image'?field('Image description (alt text)','alt',item.alt||'','text'):'')+
+      '<div class="section-label">Appearance</div>'+
+      (!NOTEXT.includes(item.type)?field('Text color','color',item.color,'color'):'')+
+      (item.type==='image'?field('Image fit','objectFit',item.objectFit||'cover','select',{options:[{value:'cover',label:'Cover'},{value:'contain',label:'Contain'},{value:'fill',label:'Stretch'},{value:'none',label:'Original size'}]}):
+        field(item.type==='box'?'Box color':'Background','bg',item.bg,'color'))+
+      (!NOTEXT.includes(item.type)?'<div class="two-col">'+field('Font size','fontSize',item.fontSize)+
+        field('Font weight','weight',item.weight,'select',{options:[{value:'400',label:'Regular'},{value:'500',label:'Medium'},{value:'600',label:'Semi-bold'},{value:'700',label:'Bold'}]})+'</div>':'')+
+      '<div class="section-label">Border</div><div class="two-col">'+
+      field('Border width (px)','borderWidth',item.borderWidth||0)+
+      field('Border color','borderColor',item.borderColor||'#252a32','color')+'</div>'+
+      field('Border style','borderStyle',item.borderStyle||'solid','select',{options:[{value:'solid',label:'Solid'},{value:'dashed',label:'Dashed'},{value:'dotted',label:'Dotted'},{value:'double',label:'Double'},{value:'none',label:'None'}]})+
+      field('Corner radius','radius',item.radius)+
+      '<div class="section-label">Shadow</div>'+
+      `<label class="check-field"><input id="prop-shadowEnabled" type="checkbox" ${item.shadowEnabled?'checked':''}> Enable shadow</label>`+
+      '<div class="two-col">'+field('X offset','shadowX',item.shadowX||0)+field('Y offset','shadowY',item.shadowY||4)+field('Blur','shadowBlur',item.shadowBlur||12)+field('Spread','shadowSpread',item.shadowSpread||0)+'</div>'+field('Shadow color','shadowColor',item.shadowColor||'#777777','color')+
+      '<div class="section-label">Hover effect</div>'+
+      `<label class="check-field"><input id="prop-hoverEnabled" type="checkbox" ${item.hoverEnabled?'checked':''}> Enable hover effect</label>`+
+      '<div class="two-col">'+field('Hover background','hoverBg',/^#[0-9a-f]{6}$/i.test(item.hoverBg||'')?item.hoverBg:(/^#[0-9a-f]{6}$/i.test(item.bg||'')?item.bg:'#dddddd'),'color')+field('Hover text color','hoverColor',item.hoverColor||item.color,'color')+'</div>'+field('Hover scale (1 = normal)','hoverScale',item.hoverScale||1.04,'number')+field('Hover shadow CSS','hoverShadow',item.hoverShadow||'0 8px 20px rgba(0,0,0,.25)','text')+
+      (item.type==='image'?'<button id="replaceImageBtn" style="width:100%;margin:0 0 8px">Replace image</button>':'')+
+      '<button id="duplicateBtn" style="width:100%;margin-top:4px">Duplicate element</button>';
+    ['name','x','y','w','h','text','color','bg','fontSize','weight','radius','borderWidth','borderColor','borderStyle','alt','objectFit','shadowX','shadowY','shadowBlur','shadowSpread','shadowColor','hoverBg','hoverColor','hoverScale','hoverShadow','label','placeholder','fieldName','inputType','buttonType','summaryText','src','embedKind','title'].forEach(key=>{
+      const input=$('prop-'+key);if(!input)return;
+      input.addEventListener('input',()=>{
+        const current=selected();if(!current)return;
+        if(!input.dataset.history){saveHistory();input.dataset.history='1';}
+        current[key]=['x','y','w','h','fontSize','radius','borderWidth','shadowX','shadowY','shadowBlur','shadowSpread','hoverScale'].includes(key)?
+          Math.max(['w','h'].includes(key)?24:0,number(input.value,current[key])):input.value;
+        updateElementAndCode();
+      });
+      input.addEventListener('change',()=>{delete input.dataset.history;render();});
+    });
+    ['shadowEnabled','hoverEnabled','required','checked','allowFullscreen','detailsEnabled','detailsOpen'].forEach(key=>{const control=$('prop-'+key);if(control)control.addEventListener('change',()=>{saveHistory();const current=selected();current[key]=control.checked;render();});});
+    if($('duplicateBtn')) $('duplicateBtn').addEventListener('click',duplicateSelected);
+    if($('replaceImageBtn')) $('replaceImageBtn').addEventListener('click',()=>$('imageUpload').click());
+  }
+  function updateElementAndCode() {
+    const item=selected();if(!item)return;
+    const el=canvas.querySelector(`[data-id="${item.id}"]`);
+    if(el){Object.assign(el.style,{left:item.x+'px',top:item.y+'px',width:item.w+'px',height:item.h+'px',
+      color:item.color,background:BG_TYPES.includes(item.type)?item.bg:'transparent',borderRadius:item.radius+'px',
+      border:`${item.borderWidth||0}px ${item.borderStyle||'solid'} ${item.borderColor||'#252a32'}`,
+      fontSize:item.fontSize+'px',fontWeight:item.weight,boxShadow:item.shadowEnabled?`${item.shadowX||0}px ${item.shadowY||4}px ${item.shadowBlur||12}px ${item.shadowSpread||0}px ${item.shadowColor||'rgba(0,0,0,.25)'}`:'none'});
+      if(item.type==='text'){const content=el.querySelector('.element-text');if(content)content.replaceWith(buildText(item));}
+      if(FORM.includes(item.type)){const old=el.querySelector(':scope > div:not(.handle)');if(old)old.replaceWith(buildControl(item));}
+      const button=el.querySelector('button');if(button)button.textContent=item.text;
+      const table=el.querySelector('table');if(table){const rows=(item.text||'').split('\n').map(line=>line.split('|').map(cell=>cell.trim()));table.innerHTML='';rows.forEach((cells,r)=>{const tr=document.createElement('tr');cells.forEach(cell=>{const td=document.createElement(r===0?'th':'td');td.textContent=cell;td.style.cssText=`border:1px solid ${item.borderColor||'#c8cbd2'};padding:5px;text-align:left;overflow-wrap:anywhere;${r===0?'background:rgba(0,0,0,.07);font-weight:700;':''}`;tr.appendChild(td);});table.appendChild(tr);});}
+    }
+    renderLayers();renderCode();
+  }
+  function renderCode() {
+    pages[activePageIndex].items=items; scheduleAutosave();
+    const width=number($('canvasWidth').value,900),height=number($('canvasHeight').value,600);
+    const wrapForm=(page,body)=>page.items.some(i=>FORM.includes(i.type))?`  <form class="layout-form" action="#" method="post">\n${body}\n  </form>`:body;
+    const html=pages.map((page,index)=>`<section class="layout layout-page-${index+1}" aria-label="${esc(page.name)}">\n${wrapForm(page,page.items.map(item=>{
+      if(item.type==='image') return `  <img class="${cssClass(item)}" src="${esc(item.src||'')}" alt="${esc(item.alt||item.name)}">`;
+      if(item.type==='button') return `  <button type="${btnType(item)}" class="${cssClass(item)}">${esc(item.text)}</button>`;
+      if(item.type==='table') {const rows=(item.text||'').split('\n').map(line=>line.split('|').map(c=>c.trim()));return `  <table class="${cssClass(item)}">${rows.map((row,r)=>`<tr>${row.map(cell=>`<${r===0?'th':'td'}>${esc(cell)}</${r===0?'th':'td'}>`).join('')}</tr>`).join('')}</table>`;}
+      const c=cssClass(item), nm=esc(item.fieldName||slug(item.name)), lb=esc(item.label||item.name), req=item.required?' required':'';
+      if(item.type==='text'&&item.detailsEnabled) return `  <details class="${c}"${item.detailsOpen?' open':''}><summary>${esc(item.summaryText||'Summary')}</summary>${esc(item.text)}</details>`;
+      if(item.type==='input') return `  <input class="${c}" type="${inType(item)}" name="${nm}" placeholder="${esc(item.placeholder)}" aria-label="${lb}"${req}>`;
+      if(item.type==='textarea') return `  <textarea class="${c}" name="${nm}" placeholder="${esc(item.placeholder)}" aria-label="${lb}"${req}></textarea>`;
+      if(item.type==='select') return `  <select class="${c}" name="${nm}" aria-label="${lb}"${req}>${lines(item.text).map(o=>`<option>${esc(o)}</option>`).join('')}</select>`;
+      if(item.type==='checkbox') return `  <label class="${c}"><input type="checkbox" name="${nm}"${item.checked?' checked':''}${req}> ${esc(item.text)}</label>`;
+      if(item.type==='radio') return `  <div class="${c}" role="radiogroup" aria-label="${lb}">${lines(item.text).map(o=>`<label><input type="radio" name="${nm}" value="${esc(o)}"> ${esc(o)}</label>`).join('')}</div>`;
+      if(item.type==='embed'){const u=esc(safeUrl(item.src));if(!u)return '  <!-- Embed: add an https:// URL -->';return item.embedKind==='embed'?`  <embed class="${c}" src="${u}">`:`  <iframe class="${c}" src="${u}" title="${esc(item.title||item.name)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"${item.allowFullscreen?' allowfullscreen':''} sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"></iframe>`;}
+      if(item.type==='divider') return `  <hr class="${cssClass(item)}">`;
+      return `  <div class="${cssClass(item)}">${item.type==='text'?esc(item.text):''}</div>`;
+    }).join('\n'))}\n</section>`).join('\n\n');
+    const css=`.layout { position:relative; width:100%; max-width:${width}px; min-height:${height}px; aspect-ratio:${width} / ${height}; margin-inline:auto; overflow:hidden; }\n.layout-form { display:contents; }\n\n`+pages.map((page,index)=>`.layout-page-${index+1} { /* ${page.name.replace(/[*/]/g,'')} */ }\n`+page.items.map(item=>{
+      const pct=n=>((n/width)*100).toFixed(4)+'%'; const yPct=n=>((n/height)*100).toFixed(4)+'%';
+      const shadow=item.shadowEnabled?`box-shadow: ${item.shadowX||0}px ${item.shadowY||4}px ${item.shadowBlur||12}px ${item.shadowSpread||0}px ${item.shadowColor||'rgba(0,0,0,.25)'};\n  `:'';
+      const hover=item.hoverEnabled?`\n.${cssClass(item)}:hover {\n  ${item.hoverBg?`background-color: ${item.hoverBg};\n  `:''}${item.hoverColor?`color: ${item.hoverColor};\n  `:''}transform: scale(${item.hoverScale||1.04});\n  box-shadow: ${item.hoverShadow||'0 8px 20px rgba(0,0,0,.25)'};\n}`:'';
+      return `.${cssClass(item)} {\n  position:absolute; left:${pct(item.x)}; top:${yPct(item.y)}; width:${pct(item.w)}; height:${yPct(item.h)};\n  box-sizing:border-box; color:${item.color};\n  ${BG_TYPES.includes(item.type)?`background:${item.bg};\n  `:''}${(item.type==='text'&&!item.detailsEnabled)||item.type==='button'?`font-size:${item.fontSize}px; font-weight:${item.weight}; display:flex; align-items:center; justify-content:center; text-align:center; white-space:pre-wrap; overflow-wrap:anywhere;\n  `:''}${item.type==='image'?`object-fit:${item.objectFit||'cover'}; display:block;\n  `:''}${item.type==='table'?`border-collapse:collapse; font-size:${item.fontSize}px;\n  `:''}${extraCss(item)}${item.type==='divider'?'border:0;':'border:'+ (item.borderWidth||0)+'px '+(item.borderStyle||'solid')+' '+(item.borderColor||'#252a32')+';'}\n  border-radius:${item.radius}px; ${shadow}transition:transform .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease;\n}${item.type==='table'?`.${cssClass(item)} th, .${cssClass(item)} td { border:1px solid ${item.borderColor||'#c8cbd2'}; padding:5px; text-align:left; }`:''}${extraRule(item)}${hover}`;
+    }).join('\n\n')).join('\n\n')+`\n\n/* Responsive layouts for tablets and phones */\n@media (max-width:768px) { .layout { width:100%; max-width:100%; } }\n@media (max-width:480px) { .layout { width:100%; } .layout * { max-width:100%; } }\n/* Accessibility */\n.layout :focus-visible { outline:3px solid currentColor; outline-offset:3px; }\n@media (prefers-reduced-motion:reduce) { .layout *, .layout *::before, .layout *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } }\n@media (pointer:coarse) { .layout button, .layout a { min-width:44px; min-height:44px; } }`;
+    codeOutput.textContent=codeTab==='html'?html||'<!-- Add an element to get started -->':css;
+  }
+  function startPointer(event) {
+    const el=event.currentTarget,id=Number(el.dataset.id),item=items.find(i=>i.id===id);if(!item)return;
+    event.preventDefault();selectedId=id;
+    const handle=event.target.dataset.handle;
+    action={type:handle?'resize':'move',handle,id,startX:event.clientX,startY:event.clientY,x:item.x,y:item.y,w:item.w,h:item.h};
+    if(handle){saveHistory();render();}
+    else {document.querySelectorAll('.element').forEach(node=>node.classList.toggle('selected',Number(node.dataset.id)===id));renderLayers();renderProperties();renderCode();}
+    window.addEventListener('pointermove',movePointer);window.addEventListener('pointerup',stopPointer,{once:true});
+  }
+  function movePointer(event) {
+    if(!action)return;const item=items.find(i=>i.id===action.id);if(!item)return;
+    const dx=(event.clientX-action.startX)/zoom,dy=(event.clientY-action.startY)/zoom;
+    if(action.type==='move'){item.x=Math.max(0,Math.round(action.x+dx));item.y=Math.max(0,Math.round(action.y+dy));}
+    else {const h=action.handle;let x=action.x,y=action.y,w=action.w,height=action.h;
+      if(h.includes('e'))w=Math.max(24,action.w+dx);if(h.includes('s'))height=Math.max(24,action.h+dy);
+      if(h.includes('w')){w=Math.max(24,action.w-dx);x=action.x+action.w-w;}
+      if(h.includes('n')){height=Math.max(24,action.h-dy);y=action.y+action.h-height;}
+      Object.assign(item,{x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(height)});
+    }
+    const el=canvas.querySelector(`[data-id="${item.id}"]`);
+    if(el)Object.assign(el.style,{left:item.x+'px',top:item.y+'px',width:item.w+'px',height:item.h+'px'});
+    renderCode();
+  }
+  function stopPointer(){if(action){action=null;render();}window.removeEventListener('pointermove',movePointer);}
+  function duplicateSelected() {
+    const item=selected();if(!item)return;saveHistory();
+    const copy={...clone(item),id:nextId++,x:item.x+24,y:item.y+24,name:item.name+' copy'};
+    items.push(copy);selectedId=copy.id;render();
+  }
+  function deleteSelected(){if(!selectedId)return;saveHistory();items=items.filter(item=>item.id!==selectedId);selectedId=null;render();}
+  function showToast(message){toast.textContent=message;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1600);}
+  function copyText(text){if(!text)return;if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(text).then(()=>showToast('Copied to clipboard!')).catch(()=>fallbackCopy(text));else fallbackCopy(text);}
+  function fallbackCopy(text){const area=document.createElement('textarea');area.value=text;document.body.appendChild(area);area.select();try{document.execCommand('copy');showToast('Copied to clipboard!');}catch(e){showToast('Copy unavailable');}area.remove();}
+  function setZoom(value){zoom=Math.max(.35,Math.min(1.25,value));canvas.style.transform=`scale(${zoom})`;canvasWrap.style.width=canvas.offsetWidth*zoom+'px';canvasWrap.style.height=canvas.offsetHeight*zoom+'px';$('zoomLabel').textContent=Math.round(zoom*100)+'%';}
+
+
+  /* ===== Project save / load / autosave ===== */
+  const APP_ID='LayoutLab', FORMAT_VERSION=1, AUTOSAVE_KEY='layoutlab.autosave.v1';
+  let projectName='Untitled project', autosaveEnabled=false, autosaveTimer=null;
+  let savedSnapshot=null, lastAutosaveAt=null, autosaveError=false, dirty=false;
+  const nameInput=$('projectName');
+
+  function serializeProject() {
+    pages[activePageIndex].items=items;
+    return {app:APP_ID,version:FORMAT_VERSION,name:projectName,savedAt:new Date().toISOString(),
+      canvas:{width:number($('canvasWidth').value,900),height:number($('canvasHeight').value,600)},
+      gridVisible,activePageIndex,nextId,pages:clone(pages)};
+  }
+  const snapshotOf = project => JSON.stringify({...project,savedAt:null});
+
+  function sanitizeProject(data) {
+    if(!data||typeof data!=='object'||data.app!==APP_ID) throw new Error('This file is not a LayoutLab project.');
+    if(!Array.isArray(data.pages)||!data.pages.length) throw new Error('The project has no pages.');
+    if(number(data.version,1)>FORMAT_VERSION) throw new Error('This project was made with a newer version of LayoutLab.');
+    const used=new Set(); let maxId=0;
+    data.pages.forEach(pg=>(pg&&Array.isArray(pg.items)?pg.items:[]).forEach(it=>{if(it&&Number.isFinite(Number(it.id)))maxId=Math.max(maxId,Number(it.id));}));
+    let counter=Math.max(maxId+1,number(data.nextId,1));
+    const cleanPages=data.pages.map((pg,i)=>({
+      id:number(pg&&pg.id,Date.now()+i),
+      name:String((pg&&pg.name)||('Page '+(i+1))).slice(0,80),
+      items:(pg&&Array.isArray(pg.items)?pg.items:[]).filter(it=>it&&typeof it==='object'&&defaults[it.type]).map(it=>{
+        const merged={...clone(defaults[it.type]),...clone(it)};
+        let id=Number(merged.id); if(!Number.isFinite(id)||used.has(id)) id=counter++;
+        used.add(id); merged.id=id;
+        ['x','y','w','h','fontSize','radius','borderWidth'].forEach(k=>merged[k]=number(merged[k],defaults[it.type][k]));
+        merged.w=Math.max(24,merged.w); merged.h=Math.max(24,merged.h);
+        merged.name=String(merged.name||it.type); merged.text=String(merged.text??'');
+        if(merged.type==='image') merged.src=typeof it.src==='string'?it.src:'';
+        if(merged.type==='embed') merged.src=safeUrl(it.src);
+        return merged;
+      })
+    }));
+    const c=data.canvas||{};
+    return {
+      name:String(data.name||'Untitled project').slice(0,80),
+      canvas:{width:Math.min(2000,Math.max(240,number(c.width,900))),height:Math.min(1600,Math.max(200,number(c.height,600)))},
+      gridVisible:data.gridVisible!==false,
+      activePageIndex:Math.min(cleanPages.length-1,Math.max(0,Math.floor(number(data.activePageIndex,0)))),
+      nextId:counter,pages:cleanPages
+    };
+  }
+
+  function applyProject(project) {
+    pages[activePageIndex].items=items;
+    saveHistory();                       // makes loading undoable
+    pages=project.pages; activePageIndex=project.activePageIndex; items=pages[activePageIndex].items;
+    nextId=project.nextId; selectedId=null;
+    projectName=project.name; nameInput.value=projectName;
+    $('canvasWidth').value=project.canvas.width; $('canvasHeight').value=project.canvas.height;
+    gridVisible=project.gridVisible;
+    const gt=$('gridToggle'); gt.classList.toggle('active',gridVisible); gt.textContent=gridVisible?'Grid visible':'Grid hidden';
+    render(); setZoom(zoom);
+  }
+
+  function fileSafeName(name) {
+    return String(name||'layoutlab-project').trim().replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,'-').replace(/^-+|-+$/g,'').slice(0,80)||'layoutlab-project';
+  }
+
+  function downloadProject() {
+    const project=serializeProject();
+    const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=fileSafeName(projectName)+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    savedSnapshot=snapshotOf(project); dirty=false; updateStatus();
+    showToast('Project saved: '+a.download);
+  }
+  function saveProject(){ downloadProject(); }
+  function saveProjectAs() {
+    const name=prompt('Save project as:',projectName);
+    if(name===null) return;
+    const clean=name.trim(); if(!clean){showToast('Enter a project name');return;}
+    projectName=clean.slice(0,80); nameInput.value=projectName; downloadProject();
+  }
+
+  function loadProjectFile(file) {
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onerror=()=>showToast('Could not read that file');
+    reader.onload=()=>{
+      let project;
+      try { project=sanitizeProject(JSON.parse(reader.result)); }
+      catch(err){ alert('Could not open project: '+(err.message||'invalid file')); return; }
+      if(dirty && !confirm('You have unsaved changes. Open "'+project.name+'" anyway? (You can still undo.)')) return;
+      applyProject(project);
+      savedSnapshot=snapshotOf(serializeProject()); dirty=false; updateStatus();
+      writeAutosave(); showToast('Opened "'+project.name+'"');
+    };
+    reader.readAsText(file);
+  }
+
+  function updateStatus() {
+    const el=$('saveStatus'); if(!el) return;
+    const t=lastAutosaveAt?lastAutosaveAt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+    if(autosaveError) el.textContent=(dirty?'Unsaved changes · ':'')+'Autosave failed (storage full?)';
+    else if(dirty) el.textContent='Unsaved changes'+(t?' · autosaved '+t:'');
+    else el.textContent='All changes saved'+(t?' · autosaved '+t:'');
+    document.title=(dirty?'• ':'')+projectName+' — LayoutLab';
+  }
+
+  function writeAutosave() {
+    if(!autosaveEnabled) return;
+    try {
+      const project=serializeProject();
+      localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(project));
+      lastAutosaveAt=new Date(); autosaveError=false;
+      dirty=savedSnapshot!==snapshotOf(project);
+    } catch(err) { autosaveError=true; }
+    updateStatus();
+  }
+  function scheduleAutosave() {
+    if(!autosaveEnabled) return;
+    clearTimeout(autosaveTimer); autosaveTimer=setTimeout(writeAutosave,700);
+    if(!dirty){dirty=true;updateStatus();}   // optimistic until the debounced check runs
+  }
+  function readAutosave() {
+    try {
+      const raw=localStorage.getItem(AUTOSAVE_KEY); if(!raw) return null;
+      const project=sanitizeProject(JSON.parse(raw));
+      const count=project.pages.reduce((n,pg)=>n+pg.items.length,0);
+      return count?{project,savedAt:JSON.parse(raw).savedAt}:null;
+    } catch(err){ return null; }
+  }
+
+  nameInput.addEventListener('input',()=>{projectName=nameInput.value.trim()||'Untitled project';scheduleAutosave();updateStatus();});
+  nameInput.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Escape')nameInput.blur();});
+  nameInput.addEventListener('blur',()=>{nameInput.value=projectName;});
+  $('saveBtn').addEventListener('click',saveProject);
+  $('saveAsBtn').addEventListener('click',saveProjectAs);
+  $('openBtn').addEventListener('click',()=>$('projectFile').click());
+  $('projectFile').addEventListener('change',e=>{loadProjectFile(e.target.files&&e.target.files[0]);e.target.value='';});
+  document.addEventListener('keydown',e=>{
+    if(!(e.ctrlKey||e.metaKey)) return;
+    const k=e.key.toLowerCase();
+    if(k==='s'){e.preventDefault();e.shiftKey?saveProjectAs():saveProject();}
+    else if(k==='o'){e.preventDefault();$('projectFile').click();}
+  });
+  window.addEventListener('beforeunload',e=>{
+    if(autosaveEnabled){clearTimeout(autosaveTimer);writeAutosave();}
+    if(dirty){e.preventDefault();e.returnValue='';}
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&autosaveEnabled){clearTimeout(autosaveTimer);writeAutosave();}});
+
+  $('addText').addEventListener('click',()=>add('text'));
+  $('addBox').addEventListener('click',()=>add('box'));
+  $('addImage').addEventListener('click',()=>$('imageUpload').click());
+  $('addButton').addEventListener('click',()=>add('button'));
+  $('addTable').addEventListener('click',()=>add('table'));
+  $('addDivider').addEventListener('click',()=>add('divider'));
+  ['Input','Textarea','Select','Checkbox','Radio','Embed'].forEach(n=>$('add'+n).addEventListener('click',()=>add(n.toLowerCase())));
+  $('addPageBtn').addEventListener('click',addPage);
+  $('renamePageBtn').addEventListener('click',()=>{const page=pages[activePageIndex];const name=prompt('Name this page:',page.name);if(name&&name.trim()){saveHistory();page.name=name.trim();render();}});
+  $('duplicatePageBtn').addEventListener('click',duplicatePage);
+  $('deletePageBtn').addEventListener('click',deletePage);
+  $('imageUpload').addEventListener('change',event=>{
+    const file=event.target.files&&event.target.files[0];if(!file)return;
+    if(!file.type.startsWith('image/')){showToast('Choose an image file');return;}
+    const reader=new FileReader();reader.onload=()=>{const current=selected();if(current&&current.type==='image'){saveHistory();current.src=reader.result;current.name=current.name||file.name;render();}else add('image',reader.result);};reader.readAsDataURL(file);event.target.value='';
+  });
+  $('deleteBtn').addEventListener('click',deleteSelected);
+  $('clearBtn').addEventListener('click',()=>{if(items.length&&confirm('Clear all elements from this page?')){saveHistory();items=[];pages[activePageIndex].items=items;selectedId=null;render();}});
+  $('copyBtn').addEventListener('click',()=>{codeTab='css';$('cssTab').classList.add('active');$('htmlTab').classList.remove('active');renderCode();copyText(codeOutput.textContent);});
+  $('copyCodeBtn').addEventListener('click',()=>copyText(codeOutput.textContent));
+  $('htmlTab').addEventListener('click',()=>{codeTab='html';$('htmlTab').classList.add('active');$('cssTab').classList.remove('active');renderCode();});
+  $('cssTab').addEventListener('click',()=>{codeTab='css';$('cssTab').classList.add('active');$('htmlTab').classList.remove('active');renderCode();});
+  $('zoomIn').addEventListener('click',()=>setZoom(zoom+.1));$('zoomOut').addEventListener('click',()=>setZoom(zoom-.1));
+  $('fitBtn').addEventListener('click',()=>setZoom(Math.min(1,($('canvasScroll').clientWidth-70)/canvas.offsetWidth)));
+  $('gridToggle').addEventListener('click',e=>{gridVisible=!gridVisible;canvas.classList.toggle('grid-off',!gridVisible);e.currentTarget.classList.toggle('active',gridVisible);e.currentTarget.textContent=gridVisible?'Grid visible':'Grid hidden';});
+  ['canvasWidth','canvasHeight'].forEach(id=>$(id).addEventListener('input',()=>{render();setZoom(zoom);}));
+  document.addEventListener('keydown',e=>{
+    const tag=document.activeElement.tagName;
+    const typing=['INPUT','TEXTAREA','SELECT'].includes(tag)||document.activeElement.isContentEditable;
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!typing){e.preventDefault();e.shiftKey?redo():undo();return;}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'&&!typing){e.preventDefault();redo();return;}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'&&!typing&&selected()){e.preventDefault();elementClipboard=clone(selected());showToast('Element copied');return;}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='v'&&!typing&&elementClipboard){e.preventDefault();saveHistory();const pasted={...clone(elementClipboard),id:nextId++,x:elementClipboard.x+24,y:elementClipboard.y+24,name:elementClipboard.name+' copy'};items.push(pasted);selectedId=pasted.id;render();return;}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'&&!typing){e.preventDefault();duplicateSelected();return;}
+    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='n'&&!typing){e.preventDefault();addPage();return;}
+    if((e.ctrlKey||e.metaKey)&&e.key==='PageDown'){e.preventDefault();switchPage(Math.min(pages.length-1,activePageIndex+1));return;}
+    if((e.ctrlKey||e.metaKey)&&e.key==='PageUp'){e.preventDefault();switchPage(Math.max(0,activePageIndex-1));return;}
+    if((e.key==='Delete'||e.key==='Backspace')&&!typing){e.preventDefault();deleteSelected();return;}
+    if(e.key==='Escape'){selectedId=null;render();return;}
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)&&!typing&&selected()){
+      e.preventDefault();saveHistory();const item=selected(),step=e.shiftKey?10:1;
+      if(e.key==='ArrowUp')item.y=Math.max(0,item.y-step);if(e.key==='ArrowDown')item.y+=step;
+      if(e.key==='ArrowLeft')item.x=Math.max(0,item.x-step);if(e.key==='ArrowRight')item.x+=step;render();
+    }
+  });
+  canvas.addEventListener('pointerdown',e=>{if(e.target===canvas){selectedId=null;render();}});
+  add('text');Object.assign(selected(),{name:'Heading',text:'Build layouts visually',x:70,y:75,w:430,h:58,fontSize:30,weight:'700',color:'#252a32'});
+  add('box');Object.assign(selected(),{name:'Card',x:70,y:175,w:230,h:170,bg:'#e34b4b',radius:12});
+  add('box');Object.assign(selected(),{name:'Card',x:325,y:175,w:230,h:170,bg:'#343b49',radius:12});
+  pages[0].items=items; render();setZoom(1);
+
+  // Startup: offer to recover the last autosaved workspace
+  const recovered=readAutosave();
+  savedSnapshot=snapshotOf(serializeProject()); dirty=false; updateStatus();
+  if(recovered){
+    const when=recovered.savedAt?new Date(recovered.savedAt).toLocaleString():'your last session';
+    $('recoverText').textContent='Recovered "'+recovered.project.name+'" from '+when+'. Restore it?';
+    $('recoverBar').hidden=false;
+    $('recoverRestore').addEventListener('click',()=>{
+      applyProject(recovered.project); undoStack.length=0; redoStack.length=0;
+      $('recoverBar').hidden=true; autosaveEnabled=true; savedSnapshot=null; writeAutosave(); showToast('Workspace restored');
+    });
+    $('recoverDiscard').addEventListener('click',()=>{
+      $('recoverBar').hidden=true; autosaveEnabled=true; writeAutosave();
+    });
+  } else { autosaveEnabled=true; writeAutosave(); }
+})();
+</script>
+</body>
+</html>
