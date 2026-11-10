@@ -259,10 +259,4 @@ If the repository does not yet contain a LICENSE file, add one before publishing
 
 ---
 
-<p align="center">
 
-**LayoutLab**
-
-*Design. Customize freely. Build your way.*
-
-</p>
